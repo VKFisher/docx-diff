@@ -1,0 +1,4 @@
+# Sample documents are confidential. Never commit them.
+data/
+node_modules/
+dist/

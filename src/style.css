@@ -1,0 +1,145 @@
+:root {
+  --bg: #f4f4f2;
+  --fg: #1d1d1b;
+  --muted: #6b6b66;
+  --line: #d9d9d4;
+  --page: #ffffff;
+  --gap-a: #ecece8;
+  --modified: #fff4c2;
+  --modified-edge: #d8b100;
+  --deleted: #fde0dd;
+  --deleted-edge: #c9352b;
+  --added: #dcf3dc;
+  --added-edge: #2e8b3d;
+  font-family: system-ui, sans-serif;
+  color: var(--fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #1c1c1a;
+    --fg: #ecece8;
+    --muted: #a3a39c;
+    --line: #3a3a36;
+    --gap-a: #2a2a27;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pick {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  max-width: 40ch;
+}
+.pick.over {
+  border-color: var(--fg);
+}
+.pick-label {
+  font-weight: 600;
+}
+.pick-name {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  color: var(--muted);
+}
+.status.error {
+  color: var(--deleted-edge);
+}
+.status b.modified {
+  color: var(--modified-edge);
+}
+.status b.deleted {
+  color: var(--deleted-edge);
+}
+.status b.added {
+  color: var(--added-edge);
+}
+
+.empty {
+  margin: auto;
+  color: var(--muted);
+  padding: 16px;
+  text-align: center;
+}
+
+/* The diff: one scroll container, two columns, one grid row per aligned pair. */
+.grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Rows must not shrink to fit the viewport: cells clip overflow, so their automatic minimum height is 0. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  column-gap: 12px;
+  padding: 16px;
+  /* Paint the page color behind both columns so sub-pixel seams between zoomed rows don't show. */
+  background: linear-gradient(
+      to right,
+      var(--page) calc(50% - 6px),
+      transparent calc(50% - 6px) calc(50% + 6px),
+      var(--page) calc(50% + 6px)
+    )
+    content-box local;
+}
+
+.cell {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--page);
+  border-left: 4px solid transparent;
+}
+.cell.modified {
+  background: var(--modified);
+  border-left-color: var(--modified-edge);
+}
+.cell.deleted {
+  background: var(--deleted);
+  border-left-color: var(--deleted-edge);
+}
+.cell.added {
+  background: var(--added);
+  border-left-color: var(--added-edge);
+}
+.cell.gap {
+  background: repeating-linear-gradient(45deg, var(--gap-a) 0 6px, transparent 6px 12px);
+}
+
+.cell > section.page {
+  zoom: var(--page-zoom, 1);
+  /* docx-preview turns on auto-hyphenation; Word doesn't by default. */
+  hyphens: manual;
+}
