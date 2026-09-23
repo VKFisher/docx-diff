@@ -94,11 +94,61 @@ header {
   color: var(--added-edge);
 }
 
-.empty {
-  margin: auto;
-  color: var(--muted);
+.title {
+  font-weight: 600;
+}
+
+.swap {
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+/* Before comparing: two drop zones, half the screen each. */
+.dropzones {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
   padding: 16px;
+}
+.pick.big {
+  max-width: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  border-radius: 12px;
+  font-size: 1.25em;
   text-align: center;
+  padding: 24px;
+}
+.pick.big .pick-name {
+  white-space: normal;
+  font-size: 0.8em;
+}
+.pick.over {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .dropzones {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr auto;
+  }
 }
 
 .viewer {

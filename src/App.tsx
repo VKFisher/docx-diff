@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { align, type Row } from './align';
 import { DiffView } from './DiffView';
 import { markFormatChanges } from './format';
@@ -14,68 +14,127 @@ interface Result {
 
 type Status = { state: 'idle' } | { state: 'working' } | { state: 'error'; message: string } | { state: 'done'; result: Result };
 
+type Side = 'old' | 'new';
+
 export function App() {
-  const [oldFile, setOldFile] = useState<File>();
-  const [newFile, setNewFile] = useState<File>();
+  const [files, setFiles] = useState<{ old?: File; new?: File }>({});
   const [status, setStatus] = useState<Status>({ state: 'idle' });
+  const renders = useRenderCache();
 
   useEffect(() => {
+    renders.keepOnly([files.old, files.new]);
+    const { old: oldFile, new: newFile } = files;
     if (!oldFile || !newFile) return;
     let cancelled = false;
-    let docs: RenderedDoc[] = [];
     setStatus({ state: 'working' });
-    (async () => {
-      try {
-        const settled = await Promise.allSettled([renderDocx(oldFile, 'docx-old'), renderDocx(newFile, 'docx-new')]);
-        const rendered = settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []));
-        const failure = settled.find((s) => s.status === 'rejected');
-        if (cancelled || failure) {
-          rendered.forEach((d) => d.dispose());
-          if (failure) throw failure.reason;
-          return;
-        }
-        docs = rendered;
-        const [left, right] = docs;
-        const rows = markFormatChanges(
-          align(
-            left.units.map((u) => u.key),
-            right.units.map((u) => u.key),
-          ),
-          left,
-          right,
-        );
+    Promise.all([renders.get(oldFile), renders.get(newFile)]).then(
+      ([left, right]) => {
+        if (cancelled) return;
+        const keys = (d: RenderedDoc) => d.units.map((u) => u.key);
+        const rows = markFormatChanges(align(keys(left), keys(right)), left, right);
         setStatus({ state: 'done', result: { id: Date.now(), left, right, rows } });
-      } catch (e) {
+      },
+      (e) => {
         if (!cancelled) setStatus({ state: 'error', message: e instanceof Error ? e.message : String(e) });
-      }
-    })();
+      },
+    );
     return () => {
       cancelled = true;
-      docs.forEach((d) => d.dispose());
     };
-  }, [oldFile, newFile]);
+  }, [files]);
+
+  /**
+   * Two or more files fill both sides, older (by modification time) as Old.
+   * One file goes to `side`, or to the first empty side when dropped elsewhere.
+   */
+  const accept = (list: FileList | null | undefined, side?: Side) => {
+    const docs = [...(list ?? [])].filter((f) => f.name.toLowerCase().endsWith('.docx'));
+    if (docs.length >= 2) {
+      const [a, b] = docs.sort((x, y) => x.lastModified - y.lastModified);
+      setFiles({ old: a, new: b });
+    } else if (docs.length === 1) {
+      const target = side ?? (!files.old ? 'old' : !files.new ? 'new' : undefined);
+      if (target) setFiles({ ...files, [target]: docs[0] });
+    }
+  };
+
+  const done = status.state === 'done';
+  const pick = (side: Side, big: boolean) => (
+    <FilePick side={side} big={big} file={files[side]} onFiles={(list) => accept(list, side)} />
+  );
 
   return (
-    <div class="app">
+    <div
+      class="app"
+      // Files dropped outside a drop zone: accept instead of letting the browser open them.
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        accept(e.dataTransfer?.files);
+      }}
+    >
       <header>
-        <FilePick label="Old" file={oldFile} onPick={setOldFile} />
-        <FilePick label="New" file={newFile} onPick={setNewFile} />
+        {done ? (
+          <>
+            {pick('old', false)}
+            <button class="swap" title="Swap old and new" onClick={() => setFiles({ old: files.new, new: files.old })}>
+              ⇄
+            </button>
+            {pick('new', false)}
+          </>
+        ) : (
+          <span class="title">docx diff</span>
+        )}
         <StatusLine status={status} />
       </header>
-      {status.state === 'done' ? (
+      {done ? (
         <DiffView key={status.result.id} {...status.result} />
       ) : (
-        <main class="empty">Pick two .docx files to compare. Nothing leaves your browser.</main>
+        <main class="dropzones">
+          {pick('old', true)}
+          {pick('new', true)}
+          <p class="hint">Drop both files at once to fill both sides. Nothing leaves your browser.</p>
+        </main>
       )}
     </div>
   );
 }
 
-function FilePick({ label, file, onPick }: { label: string; file?: File; onPick: (f: File) => void }) {
+/**
+ * Rendered documents keyed by File, so swapping sides or replacing one file
+ * doesn't re-render the other. Each render gets its own class prefix, so any
+ * two can be shown together.
+ */
+function useRenderCache() {
+  const cache = useRef(new Map<File, Promise<RenderedDoc>>()).current;
+  const seq = useRef(0);
+  return {
+    get(file: File): Promise<RenderedDoc> {
+      let doc = cache.get(file);
+      if (!doc) {
+        doc = renderDocx(file, `docx-${++seq.current}`);
+        cache.set(file, doc);
+        const failed = doc;
+        failed.catch(() => cache.get(file) === failed && cache.delete(file));
+      }
+      return doc;
+    },
+    /** Disposes renders of files no longer picked. */
+    keepOnly(keep: (File | undefined)[]) {
+      for (const [file, doc] of cache) {
+        if (keep.includes(file)) continue;
+        cache.delete(file);
+        doc.then((d) => d.dispose(), () => {});
+      }
+    },
+  };
+}
+
+function FilePick({ side, big, file, onFiles }: { side: Side; big: boolean; file?: File; onFiles: (files: FileList | null | undefined) => void }) {
   const [over, setOver] = useState(false);
   return (
     <label
-      class={`pick ${over ? 'over' : ''}`}
+      class={`pick ${big ? 'big' : ''} ${over ? 'over' : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);
@@ -83,20 +142,21 @@ function FilePick({ label, file, onPick }: { label: string; file?: File; onPick:
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         setOver(false);
-        const f = e.dataTransfer?.files[0];
-        if (f) onPick(f);
+        onFiles(e.dataTransfer?.files);
       }}
     >
-      <span class="pick-label">{label}</span>
-      <span class="pick-name">{file?.name ?? 'choose or drop a .docx'}</span>
+      <span class="pick-label">{side === 'old' ? 'Old' : 'New'}</span>
+      <span class="pick-name">{file?.name ?? (big ? 'Drop a .docx here, or click to choose' : 'choose or drop a .docx')}</span>
       <input
         type="file"
         accept=".docx"
+        multiple
         hidden
         onChange={(e) => {
-          const f = e.currentTarget.files?.[0];
-          if (f) onPick(f);
+          onFiles(e.currentTarget.files);
+          e.currentTarget.value = '';
         }}
       />
     </label>
@@ -112,8 +172,7 @@ function StatusLine({ status }: { status: Status }) {
   return (
     <span class="status">
       <b class="modified">{counts.modified}</b> modified · <b class="format">{counts.format}</b> formatting ·{' '}
-      <b class="deleted">{counts.deleted}</b> deleted ·{' '}
-      <b class="added">{counts.added}</b> added
+      <b class="deleted">{counts.deleted}</b> deleted · <b class="added">{counts.added}</b> added
     </span>
   );
 }

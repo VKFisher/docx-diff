@@ -6,7 +6,9 @@ Compare two Word documents side by side in the browser.
 - **Looks like the document.** Rendering is done by [docx-preview](https://github.com/VolodymyrBaydalka/docxjs): fonts, lists, tables and images come through.
 - **Nothing leaves your browser.** Files are read locally. The page's Content-Security-Policy (`connect-src 'none'`) stops it from sending data anywhere.
 
-Changed words are highlighted within each modified paragraph or table row. Use `n` / `p` to jump between changes, or "changes only" to fold unchanged text.
+Changed words are highlighted within each modified paragraph or table row; a paragraph that was largely rewritten is tinted instead. Formatting-only changes (same text, e.g. bold added or a style changed) are marked separately. Use `n` / `p` to jump between changes, or "changes only" to fold unchanged text.
+
+Drop both files at once to fill both sides (the older file becomes Old); ⇄ swaps them.
 
 A document that contains tracked changes is compared as if all its changes were accepted.
 
