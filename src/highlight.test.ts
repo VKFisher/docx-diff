@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { rangesFor, wordDiff } from './highlight';
+import { rangesFor, segmentPairs, wordDiff } from './highlight';
 
 describe('wordDiff', () => {
   it('returns spans of removed and added words', () => {
@@ -13,6 +13,28 @@ describe('wordDiff', () => {
 
   it('returns nothing for equal texts', () => {
     expect(wordDiff('same text', 'same text')).toEqual({ removed: [], added: [] });
+  });
+});
+
+describe('segmentPairs', () => {
+  const row = (...cells: string[]) => {
+    const t = document.createElement('table');
+    const tr = t.insertRow();
+    for (const c of cells) tr.insertCell().textContent = c;
+    return t;
+  };
+
+  it('pairs table rows cell by cell, so words never glue across cells', () => {
+    const segs = segmentPairs([[row('Plant tomatoes', 'May'), row('Plant tomatoes', 'June')]]);
+    expect(segs.map(([a, b]) => [a.textContent, b.textContent])).toEqual([
+      ['Plant tomatoes', 'Plant tomatoes'],
+      ['May', 'June'],
+    ]);
+  });
+
+  it('diffs whole elements when cell counts differ', () => {
+    const [a, b] = [row('x', 'y'), row('x', 'y', 'z')];
+    expect(segmentPairs([[a, b]])).toEqual([[a, b]]);
   });
 });
 

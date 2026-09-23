@@ -58,7 +58,7 @@ export function highlightPairs(pairs: [HTMLElement, HTMLElement][]): () => void 
   if (!('highlights' in CSS)) return () => {};
   const removed: Range[] = [];
   const added: Range[] = [];
-  for (const [a, b] of pairs) {
+  for (const [a, b] of segmentPairs(pairs)) {
     const spans = wordDiff(a.textContent ?? '', b.textContent ?? '');
     removed.push(...rangesFor(a, spans.removed));
     added.push(...rangesFor(b, spans.added));
@@ -69,4 +69,20 @@ export function highlightPairs(pairs: [HTMLElement, HTMLElement][]): () => void 
     CSS.highlights.delete('diff-removed');
     CSS.highlights.delete('diff-added');
   };
+}
+
+/**
+ * Table rows with matching cell counts are diffed cell by cell: textContent
+ * joins cells with no separator, so whole-row diffs glue words across cells.
+ */
+export function segmentPairs(pairs: [HTMLElement, HTMLElement][]): [HTMLElement, HTMLElement][] {
+  return pairs.flatMap(([a, b]): [HTMLElement, HTMLElement][] => {
+    const ca = cellsOf(a);
+    const cb = cellsOf(b);
+    return ca && cb && ca.length === cb.length ? ca.map((c, i) => [c, cb[i]]) : [[a, b]];
+  });
+}
+
+function cellsOf(el: HTMLElement): HTMLElement[] | undefined {
+  return el instanceof HTMLTableElement && el.rows.length === 1 ? [...el.rows[0].cells] : undefined;
 }
