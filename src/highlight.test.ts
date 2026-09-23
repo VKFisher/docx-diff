@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { rangesFor, segmentPairs, wordDiff } from './highlight';
+import { changedSpans, rangesFor, segmentPairs, wordDiff } from './highlight';
 
 describe('wordDiff', () => {
   it('returns spans of removed and added words', () => {
@@ -13,6 +13,32 @@ describe('wordDiff', () => {
 
   it('returns nothing for equal texts', () => {
     expect(wordDiff('same text', 'same text')).toEqual({ removed: [], added: [] });
+  });
+});
+
+describe('changedSpans', () => {
+  const marked = (text: string, spans: [number, number][]) => spans.map(([s, e]) => text.slice(s, e));
+
+  it('merges fragments separated by a short word or punctuation', () => {
+    const a = 'Plant beans, water daily, and weed the rows each week before the harvest.';
+    const b = 'Sow peas, water weekly, and weed the rows each week before the harvest.';
+    const spans = changedSpans(a, b)!;
+    expect(marked(a, spans.removed)).toEqual(['Plant beans', 'daily']);
+    expect(marked(b, spans.added)).toEqual(['Sow peas', 'weekly']);
+    // "daily" -> "weekly" is two words away from "beans": not bridged.
+    const c = 'Plant beans in rows and water them daily until the harvest.';
+    const d = 'Plant peas in rows and water them weekly until the harvest.';
+    expect(marked(c, changedSpans(c, d)!.removed)).toEqual(['beans', 'daily']);
+  });
+
+  it('keeps small edits marked, even when the whole text changes', () => {
+    expect(changedSpans('May', 'June')).toEqual({ removed: [[0, 3]], added: [[0, 4]] });
+  });
+
+  it('returns null for a rewrite: many fragments covering most of the text', () => {
+    const a = 'Both gardeners and neighbours can use one shed. The shed holds only the tools that each bed needs.';
+    const b = 'A neighbour can borrow several tools, and a gardener can lend tools to anyone. The shed is shared, open all day, and the key stays with each bed.';
+    expect(changedSpans(a, b)).toBeNull();
   });
 });
 

@@ -26,6 +26,41 @@ export function wordDiff(a: string, b: string): { removed: Span[]; added: Span[]
   return { removed, added };
 }
 
+/** A paragraph counts as rewritten, and gets no word marks, when at least this many fragments… */
+const REWRITE_FRAGMENTS = 4;
+/** …cover more than this share of the combined text. */
+const REWRITE_SHARE = 0.5;
+
+/**
+ * The spans worth marking. Fragments separated only by spaces, punctuation or
+ * one short word ("a", "the", "of") merge into one block; whitespace-only spans
+ * are dropped. Returns null for a rewrite, where marks would be confetti and
+ * the row tint says enough.
+ */
+export function changedSpans(a: string, b: string): { removed: Span[]; added: Span[] } | null {
+  const raw = wordDiff(a, b);
+  const removed = tidy(a, raw.removed);
+  const added = tidy(b, raw.added);
+  const changed = [...removed, ...added].reduce((n, [s, e]) => n + e - s, 0);
+  // Counted before tidying: tidying hides confetti by merging it into large blocks.
+  const fragments = Math.max(raw.removed.length, raw.added.length);
+  if (fragments >= REWRITE_FRAGMENTS && changed > REWRITE_SHARE * (a.length + b.length)) return null;
+  return { removed, added };
+}
+
+function tidy(text: string, spans: Span[]): Span[] {
+  const out: Span[] = [];
+  for (const [s, e] of spans) {
+    const last = out[out.length - 1];
+    if (last && BRIDGE.test(text.slice(last[1], s))) last[1] = e;
+    else out.push([s, e]);
+  }
+  return out.filter(([s, e]) => text.slice(s, e).trim() !== '');
+}
+
+/** Gap text too small to leave unmarked between two changes. */
+const BRIDGE = /^[\s\p{P}]*(\p{L}{1,3}[\s\p{P}]*)?$/u;
+
 /**
  * Maps text spans of `root.textContent` to DOM Ranges over its text nodes.
  * Ranges can cross element boundaries (runs, table cells), which is what lets
@@ -59,7 +94,8 @@ export function highlightPairs(pairs: [HTMLElement, HTMLElement][]): () => void 
   const removed: Range[] = [];
   const added: Range[] = [];
   for (const [a, b] of segmentPairs(pairs)) {
-    const spans = wordDiff(a.textContent ?? '', b.textContent ?? '');
+    const spans = changedSpans(a.textContent ?? '', b.textContent ?? '');
+    if (!spans) continue;
     removed.push(...rangesFor(a, spans.removed));
     added.push(...rangesFor(b, spans.added));
   }
