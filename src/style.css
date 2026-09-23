@@ -4,8 +4,9 @@
   --muted: #6b6b66;
   --line: #d9d9d4;
   --page: #ffffff;
-  /* Gap hatching sits on the white page in both themes. */
+  /* Gaps and fold bars sit on the white page in both themes. */
   --gap-a: #ecece8;
+  --gap-fg: #6b6b66;
   --modified: #fff4c2;
   --modified-edge: #d8b100;
   --deleted: #fde0dd;
@@ -95,9 +96,58 @@ header {
   text-align: center;
 }
 
+.viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.toolbar button {
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.position {
+  min-width: 7ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.toggle {
+  margin-left: 12px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 /* The diff: one scroll container, two columns, one grid row per aligned pair. */
 .grid {
   flex: 1;
+  position: relative; /* offsetParent for cells, so offsetTop is in scroll coordinates */
   overflow-y: auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -114,6 +164,49 @@ header {
       var(--page) calc(50% + 6px)
     )
     content-box local;
+}
+
+/* Change markers beside the scrollbar, positioned as a fraction of the scroll height. */
+.minimap {
+  position: relative;
+  width: 12px;
+  margin: 16px 2px;
+}
+.marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.marker.current {
+  opacity: 1;
+  outline: 1px solid var(--fg);
+}
+.marker.modified {
+  background: var(--modified-edge);
+}
+.marker.deleted {
+  background: var(--deleted-edge);
+}
+.marker.added {
+  background: var(--added-edge);
+}
+
+.fold {
+  grid-column: 1 / -1;
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--gap-fg);
+  background: var(--gap-a);
+  border: 0;
+  padding: 4px;
+  cursor: pointer;
+}
+.fold:hover {
+  text-decoration: underline;
 }
 
 .cell {
@@ -133,6 +226,11 @@ header {
 .cell.added {
   background: var(--added);
   border-left-color: var(--added-edge);
+}
+/* Folded rows stay rendered (list counters only count rendered elements), just zero-height. */
+.cell.folded {
+  height: 0;
+  border: 0;
 }
 .cell.gap {
   background: repeating-linear-gradient(45deg, var(--gap-a) 0 6px, transparent 6px 12px);

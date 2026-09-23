@@ -4,6 +4,8 @@ import { DiffView } from './DiffView';
 import { renderDocx, type RenderedDoc } from './render';
 
 interface Result {
+  /** Distinguishes comparisons, so the view resets its state for new files. */
+  id: number;
   left: RenderedDoc;
   right: RenderedDoc;
   rows: Row[];
@@ -37,7 +39,7 @@ export function App() {
           left.units.map((u) => u.key),
           right.units.map((u) => u.key),
         );
-        setStatus({ state: 'done', result: { left, right, rows } });
+        setStatus({ state: 'done', result: { id: Date.now(), left, right, rows } });
       } catch (e) {
         if (!cancelled) setStatus({ state: 'error', message: e instanceof Error ? e.message : String(e) });
       }
@@ -56,7 +58,7 @@ export function App() {
         <StatusLine status={status} />
       </header>
       {status.state === 'done' ? (
-        <DiffView {...status.result} />
+        <DiffView key={status.result.id} {...status.result} />
       ) : (
         <main class="empty">Pick two .docx files to compare. Nothing leaves your browser.</main>
       )}
