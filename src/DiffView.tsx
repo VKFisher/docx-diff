@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { Row } from './align';
+import { highlightPairs } from './highlight';
 import type { RenderedDoc, Unit } from './render';
 
 interface Props {
@@ -30,6 +31,13 @@ export function DiffView({ left, right, rows }: Props) {
     fit();
     return () => ro.disconnect();
   }, [left, right]);
+
+  useLayoutEffect(() => {
+    const pairs = rows.flatMap((r): [HTMLElement, HTMLElement][] =>
+      r.kind === 'modified' ? [[left.units[r.a!].el, right.units[r.b!].el]] : [],
+    );
+    return highlightPairs(pairs);
+  }, [left, right, rows]);
 
   return (
     <div class="grid" ref={grid} style={{ counterReset: `${left.counterReset} ${right.counterReset}`.trim() || undefined }}>

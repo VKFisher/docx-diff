@@ -4,6 +4,7 @@
   --muted: #6b6b66;
   --line: #d9d9d4;
   --page: #ffffff;
+  /* Gap hatching sits on the white page in both themes. */
   --gap-a: #ecece8;
   --modified: #fff4c2;
   --modified-edge: #d8b100;
@@ -21,7 +22,6 @@
     --fg: #ecece8;
     --muted: #a3a39c;
     --line: #3a3a36;
-    --gap-a: #2a2a27;
   }
 }
 
@@ -136,6 +136,14 @@ header {
 }
 .cell.gap {
   background: repeating-linear-gradient(45deg, var(--gap-a) 0 6px, transparent 6px 12px);
+}
+
+::highlight(diff-removed) {
+  background-color: #f5a39b;
+  text-decoration: line-through;
+}
+::highlight(diff-added) {
+  background-color: #97d89d;
 }
 
 .cell > section.page {

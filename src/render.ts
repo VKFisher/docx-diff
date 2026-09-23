@@ -63,7 +63,11 @@ export async function renderDocx(file: Blob, className: string): Promise<Rendere
         padRight: parseFloat(cs.paddingRight) || 0,
       };
       for (const el of section.querySelectorAll<HTMLElement>(':scope > article > *')) {
-        units.push({ el, key: keyOf(el), frame });
+        if (el instanceof HTMLTableElement && canSplit(el)) {
+          for (const row of splitRows(el)) units.push({ el: row, key: keyOf(row), frame });
+        } else {
+          units.push({ el, key: keyOf(el), frame });
+        }
       }
     }
 
@@ -102,9 +106,35 @@ function takeRootCounterReset(styles: HTMLElement): string {
   return resets.join(' ');
 }
 
-/** Alignment key: element kind + whitespace-normalized text (+ image count, since images have no text). */
+/** Tables are split into rows so a change in one row doesn't mark the whole table. Vertically merged cells would break apart, so those tables stay whole. */
+function canSplit(table: HTMLTableElement): boolean {
+  return ![...table.querySelectorAll('td, th')].some((c) => (c as HTMLTableCellElement).rowSpan > 1);
+}
+
+/** One single-row table per row, each keeping the original table's attributes and column widths. */
+function splitRows(table: HTMLTableElement): HTMLTableElement[] {
+  const colgroup = table.querySelector(':scope > colgroup');
+  return [...table.rows].map((row) => {
+    const t = table.cloneNode(false) as HTMLTableElement;
+    if (colgroup) t.append(colgroup.cloneNode(true));
+    t.append(row);
+    return t;
+  });
+}
+
+/**
+ * Alignment key, `TAG|text`: element kind + whitespace-normalized text (+ image count,
+ * since images have no text). A single-row table is keyed `TR|cell | cell | ...`.
+ */
 function keyOf(el: HTMLElement): string {
-  const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const isRow = el instanceof HTMLTableElement && el.rows.length === 1;
+  const text = isRow
+    ? [...(el as HTMLTableElement).rows[0].cells].map((c) => normalize(c.textContent)).join(' | ')
+    : normalize(el.textContent);
   const images = el.querySelectorAll('img').length;
-  return `${el.tagName}|${text}${images ? `|img${images}` : ''}`;
+  return `${isRow ? 'TR' : el.tagName}|${text}${images ? `|img${images}` : ''}`;
+}
+
+function normalize(text: string | null): string {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
 }
