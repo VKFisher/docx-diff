@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Row, RowKind } from './align';
-import { highlightPairs } from './highlight';
+import { formatRanges } from './format';
+import { paint, wordRanges } from './highlight';
 import { folds, hunks, type RowRange } from './layout';
 import type { RenderedDoc, Unit } from './render';
 
@@ -106,10 +107,14 @@ export function DiffView({ left, right, rows }: Props) {
   }, [left, right, activeFolds]);
 
   useLayoutEffect(() => {
-    const pairs = rows.flatMap((r): [HTMLElement, HTMLElement][] =>
-      r.kind === 'modified' ? [[left.units[r.a!].el, right.units[r.b!].el]] : [],
-    );
-    return highlightPairs(pairs);
+    const pairsOf = (kind: RowKind) =>
+      rows.flatMap((r): [HTMLElement, HTMLElement][] => (r.kind === kind ? [[left.units[r.a!].el, right.units[r.b!].el]] : []));
+    const words = wordRanges(pairsOf('modified'));
+    return paint({
+      'diff-removed': words.removed,
+      'diff-added': words.added,
+      'diff-format': formatRanges(pairsOf('format'), left.className, right.className),
+    });
   }, [left, right, rows]);
 
   useEffect(() => {

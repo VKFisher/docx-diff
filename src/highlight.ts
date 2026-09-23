@@ -85,12 +85,8 @@ export function rangesFor(root: Node, spans: Span[]): Range[] {
   });
 }
 
-/**
- * Marks changed words in every modified pair using the CSS Custom Highlight API
- * (`::highlight(diff-removed)` / `::highlight(diff-added)`). Returns a cleanup.
- */
-export function highlightPairs(pairs: [HTMLElement, HTMLElement][]): () => void {
-  if (!('highlights' in CSS)) return () => {};
+/** Ranges of the changed words in each modified pair (word marks are skipped for rewrites). */
+export function wordRanges(pairs: [HTMLElement, HTMLElement][]): { removed: Range[]; added: Range[] } {
   const removed: Range[] = [];
   const added: Range[] = [];
   for (const [a, b] of segmentPairs(pairs)) {
@@ -99,12 +95,17 @@ export function highlightPairs(pairs: [HTMLElement, HTMLElement][]): () => void 
     removed.push(...rangesFor(a, spans.removed));
     added.push(...rangesFor(b, spans.added));
   }
-  CSS.highlights.set('diff-removed', new Highlight(...removed));
-  CSS.highlights.set('diff-added', new Highlight(...added));
-  return () => {
-    CSS.highlights.delete('diff-removed');
-    CSS.highlights.delete('diff-added');
-  };
+  return { removed, added };
+}
+
+/**
+ * Registers named highlights with the CSS Custom Highlight API, styled by
+ * `::highlight(<name>)`. The DOM is never modified. Returns a cleanup.
+ */
+export function paint(highlights: Record<string, Range[]>): () => void {
+  if (!('highlights' in CSS)) return () => {};
+  for (const [name, ranges] of Object.entries(highlights)) CSS.highlights.set(name, new Highlight(...ranges));
+  return () => Object.keys(highlights).forEach((name) => CSS.highlights.delete(name));
 }
 
 /**

@@ -1,6 +1,7 @@
 import { diffArrays } from 'diff';
 
-export type RowKind = 'same' | 'modified' | 'deleted' | 'added';
+/** `format`: same text, different formatting (set after alignment, see format.ts). */
+export type RowKind = 'same' | 'format' | 'modified' | 'deleted' | 'added';
 
 /** One line of the side-by-side view. `a` indexes the old units, `b` the new ones. */
 export interface Row {

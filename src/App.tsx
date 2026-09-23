@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { align, type Row } from './align';
 import { DiffView } from './DiffView';
+import { markFormatChanges } from './format';
 import { renderDocx, type RenderedDoc } from './render';
 
 interface Result {
@@ -35,9 +36,13 @@ export function App() {
         }
         docs = rendered;
         const [left, right] = docs;
-        const rows = align(
-          left.units.map((u) => u.key),
-          right.units.map((u) => u.key),
+        const rows = markFormatChanges(
+          align(
+            left.units.map((u) => u.key),
+            right.units.map((u) => u.key),
+          ),
+          left,
+          right,
         );
         setStatus({ state: 'done', result: { id: Date.now(), left, right, rows } });
       } catch (e) {
@@ -102,11 +107,12 @@ function StatusLine({ status }: { status: Status }) {
   if (status.state === 'working') return <span class="status">Rendering…</span>;
   if (status.state === 'error') return <span class="status error">{status.message}</span>;
   if (status.state !== 'done') return null;
-  const counts = { modified: 0, deleted: 0, added: 0 };
+  const counts = { modified: 0, format: 0, deleted: 0, added: 0 };
   for (const r of status.result.rows) if (r.kind !== 'same') counts[r.kind]++;
   return (
     <span class="status">
-      <b class="modified">{counts.modified}</b> modified · <b class="deleted">{counts.deleted}</b> deleted ·{' '}
+      <b class="modified">{counts.modified}</b> modified · <b class="format">{counts.format}</b> formatting ·{' '}
+      <b class="deleted">{counts.deleted}</b> deleted ·{' '}
       <b class="added">{counts.added}</b> added
     </span>
   );

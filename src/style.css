@@ -9,6 +9,8 @@
   --gap-fg: #6b6b66;
   --modified: #fff4c2;
   --modified-edge: #d8b100;
+  --format: #e3ecfb;
+  --format-edge: #3b6fd1;
   --deleted: #fde0dd;
   --deleted-edge: #c9352b;
   --added: #dcf3dc;
@@ -81,6 +83,9 @@ header {
 }
 .status b.modified {
   color: var(--modified-edge);
+}
+.status b.format {
+  color: var(--format-edge);
 }
 .status b.deleted {
   color: var(--deleted-edge);
@@ -188,6 +193,9 @@ header {
 .marker.modified {
   background: var(--modified-edge);
 }
+.marker.format {
+  background: var(--format-edge);
+}
 .marker.deleted {
   background: var(--deleted-edge);
 }
@@ -219,6 +227,10 @@ header {
   background: var(--modified);
   border-left-color: var(--modified-edge);
 }
+.cell.format {
+  background: var(--format);
+  border-left-color: var(--format-edge);
+}
 .cell.deleted {
   background: var(--deleted);
   border-left-color: var(--deleted-edge);
@@ -239,6 +251,9 @@ header {
 ::highlight(diff-removed) {
   background-color: #f5a39b;
   text-decoration: line-through;
+}
+::highlight(diff-format) {
+  text-decoration: underline dotted #3b6fd1 2px;
 }
 ::highlight(diff-added) {
   background-color: #97d89d;

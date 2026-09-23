@@ -44,7 +44,9 @@ def build(new: bool):
     d.add_picture(io.BytesIO(png(120, 40, (90, 160, 90))), width=Inches(3))
     if new:
         d.add_paragraph('A drip line waters all beds from the rain barrel.')
-    d.add_paragraph('Paths between beds are covered with wood chips.')
+    paths = d.add_paragraph('Paths between beds are covered with ')
+    paths.add_run('wood chips').bold = new  # formatting-only change
+    paths.add_run('.')
     return d
 
 
