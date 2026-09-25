@@ -294,6 +294,18 @@ header {
   height: 0;
   border: 0;
 }
+/* Single-row tables fill the grid row: cell -> page -> article -> table, each stretched. */
+.cell.table-row,
+.cell.table-row > section.page {
+  display: flex;
+}
+.cell.table-row > section.page > article {
+  flex: 1;
+  display: flex;
+}
+.cell.table-row > section.page > article > table {
+  flex: 1;
+}
 .cell.gap {
   background: repeating-linear-gradient(45deg, var(--gap-a) 0 6px, transparent 6px 12px);
 }

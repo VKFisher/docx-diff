@@ -196,7 +196,7 @@ function Cell({ row, doc, unit, kind, hidden }: { row: number; doc: RenderedDoc;
     if (unit) article.current!.replaceChildren(unit.el);
   }, [unit]);
 
-  const cls = `cell ${unit ? '' : 'gap'} ${kind} ${hidden ? 'folded' : ''}`;
+  const cls = `cell ${unit ? '' : 'gap'} ${isTableRow(unit) ? 'table-row' : ''} ${kind} ${hidden ? 'folded' : ''}`;
   if (!unit) return <div class={cls} data-row={row} />;
   const { width, padLeft, padRight } = unit.frame;
   return (
@@ -207,6 +207,11 @@ function Cell({ row, doc, unit, kind, hidden }: { row: number; doc: RenderedDoc;
       </section>
     </div>
   );
+}
+
+/** A table cut down to one row (see render.ts). Stretched to the grid row's height, so a row that wraps shorter than its counterpart still reads as a continuous table. */
+function isTableRow(unit?: Unit): boolean {
+  return unit?.el instanceof HTMLTableElement && unit.el.rows.length === 1;
 }
 
 function unitOf(doc: RenderedDoc, index?: number): Unit | undefined {
