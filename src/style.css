@@ -321,6 +321,10 @@ header {
   background-color: #f5a39b;
   text-decoration: line-through;
 }
+/* A whole deleted block: the deleted-text color, without the strikethrough. */
+::highlight(diff-removed-block) {
+  background-color: #f5a39b;
+}
 ::highlight(diff-format) {
   text-decoration: underline dotted #3b6fd1 2px;
 }

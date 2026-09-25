@@ -109,13 +109,23 @@ export function DiffView({ left, right, rows }: Props) {
   useLayoutEffect(() => {
     const pairsOf = (kind: RowKind) =>
       rows.flatMap((r): [HTMLElement, HTMLElement][] => (r.kind === kind ? [[left.units[r.a!].el, right.units[r.b!].el]] : []));
+    // Whole deleted/added blocks get the same color as deleted/added words, so full color always means removed or added
+    // text. Deleted blocks skip the strikethrough: a struck paragraph is hard to read, and the gap opposite says enough.
+    const whole = (kind: RowKind) =>
+      rows.flatMap((r) => {
+        if (r.kind !== kind) return [];
+        const range = document.createRange();
+        range.selectNodeContents((kind === 'deleted' ? left.units[r.a!] : right.units[r.b!]).el);
+        return [range];
+      });
     const words = wordRanges(pairsOf('modified'));
     // Later entries paint on top: character marks over their token's soft tint.
     return paint({
       'diff-removed-soft': words.removedSoft,
       'diff-added-soft': words.addedSoft,
       'diff-removed': words.removed,
-      'diff-added': words.added,
+      'diff-removed-block': whole('deleted'),
+      'diff-added': [...words.added, ...whole('added')],
       'diff-format': [...formatRanges(pairsOf('format'), left.className, right.className), ...words.cased],
     });
   }, [left, right, rows]);
