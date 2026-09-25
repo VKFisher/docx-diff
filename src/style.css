@@ -11,10 +11,11 @@
   --modified-edge: #d8b100;
   --format: #e3ecfb;
   --format-edge: #3b6fd1;
-  --deleted: #fde0dd;
   --deleted-edge: #c9352b;
-  --added: #dcf3dc;
   --added-edge: #2e8b3d;
+  /* Whole deleted/added blocks: between the pale row tints and the inline word marks. */
+  --deleted-block: #f7bdb6;
+  --added-block: #b5e3b9;
   font-family: system-ui, sans-serif;
   color: var(--fg);
 }
@@ -282,12 +283,34 @@ header {
   border-left-color: var(--format-edge);
 }
 .cell.deleted {
-  background: var(--deleted);
   border-left-color: var(--deleted-edge);
 }
 .cell.added {
-  background: var(--added);
   border-left-color: var(--added-edge);
+}
+/*
+ * A whole deleted/added block is tinted as one piece, over everything it contains.
+ * Multiply keeps the document's own colors (dark table headers, cell shading) and
+ * dark text readable; text highlights would break into ragged per-line boxes.
+ */
+.cell.deleted:not(.gap),
+.cell.added:not(.gap) {
+  position: relative;
+}
+.cell.deleted:not(.gap)::after,
+.cell.added:not(.gap)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+.cell.deleted:not(.gap)::after {
+  background: var(--deleted-block);
+}
+.cell.added:not(.gap)::after {
+  background: var(--added-block);
 }
 /* Folded rows stay rendered (list counters only count rendered elements), just zero-height. */
 .cell.folded {
@@ -320,10 +343,6 @@ header {
 ::highlight(diff-removed) {
   background-color: #f5a39b;
   text-decoration: line-through;
-}
-/* A whole deleted block: the deleted-text color, without the strikethrough. */
-::highlight(diff-removed-block) {
-  background-color: #f5a39b;
 }
 ::highlight(diff-format) {
   text-decoration: underline dotted #3b6fd1 2px;
