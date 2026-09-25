@@ -310,6 +310,13 @@ header {
   background: repeating-linear-gradient(45deg, var(--gap-a) 0 6px, transparent 6px 12px);
 }
 
+/* A token with only some characters changed: pale tint, changed characters in full color on top. */
+::highlight(diff-removed-soft) {
+  background-color: #fad3cf;
+}
+::highlight(diff-added-soft) {
+  background-color: #cfeed2;
+}
 ::highlight(diff-removed) {
   background-color: #f5a39b;
   text-decoration: line-through;

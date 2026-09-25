@@ -1,4 +1,5 @@
 import { renderAsync } from 'docx-preview';
+import { textMap } from './text';
 
 /** Page geometry of the docx section a unit came from, in CSS px. */
 export interface Frame {
@@ -129,12 +130,12 @@ function splitRows(table: HTMLTableElement): HTMLTableElement[] {
 function keyOf(el: HTMLElement): string {
   const isRow = el instanceof HTMLTableElement && el.rows.length === 1;
   const text = isRow
-    ? [...(el as HTMLTableElement).rows[0].cells].map((c) => normalize(c.textContent)).join(' | ')
-    : normalize(el.textContent);
+    ? [...(el as HTMLTableElement).rows[0].cells].map((c) => normalize(textMap(c).text)).join(' | ')
+    : normalize(textMap(el).text);
   const images = el.querySelectorAll('img').length;
   return `${isRow ? 'TR' : el.tagName}|${text}${images ? `|img${images}` : ''}`;
 }
 
-function normalize(text: string | null): string {
-  return (text ?? '').replace(/\s+/g, ' ').trim();
+function normalize(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
 }

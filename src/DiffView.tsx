@@ -110,10 +110,13 @@ export function DiffView({ left, right, rows }: Props) {
     const pairsOf = (kind: RowKind) =>
       rows.flatMap((r): [HTMLElement, HTMLElement][] => (r.kind === kind ? [[left.units[r.a!].el, right.units[r.b!].el]] : []));
     const words = wordRanges(pairsOf('modified'));
+    // Later entries paint on top: character marks over their token's soft tint.
     return paint({
+      'diff-removed-soft': words.removedSoft,
+      'diff-added-soft': words.addedSoft,
       'diff-removed': words.removed,
       'diff-added': words.added,
-      'diff-format': formatRanges(pairsOf('format'), left.className, right.className),
+      'diff-format': [...formatRanges(pairsOf('format'), left.className, right.className), ...words.cased],
     });
   }, [left, right, rows]);
 
